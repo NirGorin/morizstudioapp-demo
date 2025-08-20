@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import os
 from sqlalchemy.testing.pickleable import User
+from ..schemas import CreateUserRequest, CreateTraineeProfileRequest, Token
 
 from ..database import SessionMoriz
 from ..models import Studio, User, TraineeProfile
@@ -33,35 +34,7 @@ db_dependecy = Annotated[Session,Depends(get_db)]
 
 ALGORITHM = os.getenv("ALGORITHM")
 SECRET_KEY= os.getenv("SECRET_KEY") 
-class CreateUserRequest(BaseModel):
-    First_Name : str
-    Last_Name : str
-    Username : str
-    Email : str
-    Password : str
-    Role: str
-    Phone_Number: str
 
-class CreateTraineeProfileRequest(BaseModel):
-    Age: int
-    Gender: str
-    Height: int
-    Weight: int
-    Level: str
-    Number_Of_Week_Training: str
-    Limitation: str = None
-
-class CreateStudioRequest(BaseModel):
-    Name: str
-    Email: str
-
-
-    
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 def authenticate_user(username: str, password: str, db: db_dependecy):
     user_model= db.query(User).filter(User.username == username).first()
@@ -127,59 +100,9 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 #     db.add(trainee_profile)
 #     db.commit()
 #     return {"message": "Trainee profile created successfully", "profile_id": trainee_profile.id}
-@router.post("/create_studio", status_code=status.HTTP_201_CREATED)
-async def create_studio(db: db_dependecy, studio: CreateStudioRequest, user: Annotated[dict, Depends(get_current_user)]):
-    if user['role'] != 'admin':
-        raise HTTPException(status_code=403, detail="User role not allowed to create studio")
-    studio_model = Studio(
-        name=studio.Name,
-        studio_email=studio.Email
-    )
-    db.add(studio_model)
-    db.commit()
-    return {"message": "Studio created successfully", "studio_id": studio_model.id}
+
 
 # יצירת פרופיל — הוספת BackgroundTasks ושיגור AI
-@router.post("/create_trainee_profile", status_code=status.HTTP_201_CREATED)
-async def create_trainee_profile(
-    background_tasks: BackgroundTasks,
-    db: db_dependecy,
-    profile: CreateTraineeProfileRequest,
-    user: Annotated[dict, Depends(get_current_user)],
-):
-    if user['role'] == 'trainer':
-        raise HTTPException(status_code=403, detail="User role not allowed to create trainee profile")
 
-    trainee_profile = TraineeProfile(
-        age=profile.Age,
-        gender=profile.Gender,
-        height_cm=profile.Height,
-        weight_kg=profile.Weight,
-        level=profile.Level,
-        number_of_week_training=profile.Number_Of_Week_Training,
-        limitations=profile.Limitation,
-        user_id=user['id'],
-        ai_status="queued",
-    )
-    db.add(trainee_profile)
-    db.commit()
-    db.refresh(trainee_profile)
 
-    # ✅ משימת רקע — לא חוסם את הבקשה
-    background_tasks.add_task(process_profile_in_background, trainee_profile.id)
-
-    return {"message": "Trainee profile created successfully", "profile_id": trainee_profile.id}
-
-@router.delete("/delete_trainee_profile/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_trainee_profile(profile_id: int, db: db_dependecy, user: Annotated[dict, Depends(get_current_user)]):
-    if user['role'] == 'trainer':
-        raise HTTPException(status_code=403, detail="User role not allowed to delete trainee profile")
-    
-    profile = db.query(TraineeProfile).filter(TraineeProfile.id == profile_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Trainee profile not found")
-
-    db.delete(profile)
-    db.commit()
-    return {"message": "Trainee profile deleted successfully"}
 
