@@ -49,13 +49,11 @@ async def delete_studio(studio_id: int, db: db_dependecy, user: Annotated[dict, 
     db.commit()
     return {"message": "Studio deleted successfully"}
 
-@router.create("/registering_to_studio", status_code=status.HTTP_201_CREATED)
+@router.post("/registering_to_studio", status_code=status.HTTP_201_CREATED)
 async def register_studio(
     db: db_dependecy,studio_name: str,user: Annotated[dict, Depends(get_current_user)]):
     if user is None:
         raise HTTPException(status_code=401, detail="User not authenticated")
-    if user['role'] == 'admin':
-        raise HTTPException(status_code=403, detail="User role not allowed to register studio")
     user_model = db.query(User).filter(User.id == user['id']).first()
     if user_model.studio_id:
         raise HTTPException(status_code=400, detail="User already registered to a studio")
