@@ -10,6 +10,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import os
 from sqlalchemy.testing.pickleable import User
+<<<<<<< Updated upstream
+=======
+from app.schemas import CreateUserRequest, CreateTraineeProfileRequest, Token
+>>>>>>> Stashed changes
 
 from ..database import SessionMoriz
 from ..models import Studio, User, TraineeProfile
