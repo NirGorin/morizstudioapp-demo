@@ -44,3 +44,14 @@ def get_user_email(user_id: int, db: Session = Depends(get_db)):
 
     # 4) החזרה ללקוח
     return {"user_id": user_id, "email": email, "cache": "MISS"}
+
+@router.delete("/{user_id}/")
+def delete_user_email(username: str, db: Session = Depends(get_db)):
+    user_model = db.query(User).filter(User.username == username).first()
+    if not user_model:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user_model)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
+
